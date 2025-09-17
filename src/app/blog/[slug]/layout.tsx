@@ -1,4 +1,4 @@
-export default function RootLayout({
+export default function BlogLayout({
   children,
 }: {
   children: React.ReactNode
@@ -6,9 +6,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <header>=== Root Layout ===</header>
+        <header>=== Blog Layout ===</header>
         <main>{children}</main>
-        <footer>=== Root Footer ===</footer>
+        <footer>=== Blog Footer ===</footer>
       </body>
     </html>
   )

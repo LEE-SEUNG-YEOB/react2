@@ -1,5 +1,148 @@
 # 202030121 이승엽
 
+## 9월 17일 (4주차)
+### git checkout VS switch 차이  
+* checkout은 브랜치를 이동하고 파일도 변경 가능. 이 때문에 실수할 위험성이 있음  
+
+* switch 브랜치만 이동할 수 있기 때문에 안전하게 사용할 수 있음  
+![](./img/23.png)  
+* 특별한 이유가 없다면 switch 사용  
+* checkout이 그대로 남아있는 이유  
+    - 파일 복원 등 이미 커밋된 파일을 조작할 수 있기 때문  
+    - 특히 git checkout 커밋 해시 명령으로 특정 커밋으로 이동 가능  
+
+### Creating a page  
+* Next.js는 파일 시스템 기반 라우팅을 사용하기 때문에 폴더와 파일을 사용하여 경로를 정의  
+
+* page는 특정 경로에서 렌더링되는 UI  
+
+### Creating a layout  
+* layout은 여러 페이지에서 공유되는 UI  
+    - 네비게이션에서 state 및 상호작용 유지, 다시 렌더링 되지는 않음  
+
+* layout 파일에서 React 컴포넌트의 default export를 사용하여 layout을 정의할 수 있음  
+* layout 컴포넌트는 page 또는 다른 layout이 될 수 있는 children prop을 허용해야 함  
+```javascript
+<Layout>
+    <Page />
+</Layout>  
+
+<Layout>
+    <AnotherLayout>
+        <Page/>
+    </AnotherLayout>
+</Layout> 
+```  
+
+* 예를 들어, index 페이지를 자식으로 허용하는 레이아웃을 만들려면 app 디렉토리에 layout 파일을 추가  
+![](./img/24.png)  
+```javascript
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        {/* Layout UI */}
+        {/* Place children where you want to render a page or nested layout */}
+        <main>{children}</main>
+      </body>
+    </html>
+  )
+}
+```  
+
+### Creating a nested route  
+* 중첩 라우트는 다음 URL 세그먼트로 구성된 라우트  
+    - 예를 들어, /blog/slug 경로는 세 개의 세그먼트로 구성  
+        - / (Root Segment)  
+        - blog (Segment)  
+        - [slug] (leaf Segemnt)  
+
+* Next.js에서  
+    - 폴더는 URL 세그먼트에 매핑되는 경로 세그먼트를 정의하는데 사용  
+    - 파일은 세그먼트에 표시되는 UI를 만드는데 사용  
+    - 폴더를 중첩하면 중첩된 라우트를 만들 수 있음  
+    - 폴더 이름을 대괄호로 묶으면 데이터에서 여러 페이지를 생성하는데 사용되는 동적 경로 세그먼트가 생성  
+    ![](./img/25.png)
+```javascript
+// Dummy imports
+import { getPosts } from '@/lib/posts'
+import { Post } from '@/ui/post'
+ 
+export default async function Page() {
+  const posts = await getPosts()
+ 
+  return (
+    <ul>
+      {posts.map((post) => (
+        <Post key={post.id} post={post} />
+      ))}
+    </ul>
+  )
+}
+```  
+
+* slug는 사이트의 특정 페이지를 쉽게 읽을 수 있는 형태로 식별하는 URL의 일부  
+    - [slug]는 반드시 slug일 필요는 없음. 단, [foo]라고 했다면 데이터에 반드시 foo key(필드)가 있어야함  
+
+### Nesting layouts  
+* 기본적으로 폴더 계층 구조의 레이아웃도 중첩되어 있음  
+    - 즉, 자식 prop을 통해 자식 레이아웃을 감싸게됨  
+    - 특정 경로 세그먼트 안에 레이아웃을 추가하여 레이아웃을 중첩할 수 있음  
+    - 예를 들어 /blog 경로에 대한 레이아웃을 만들려면 blog 폴더 안에 새 레이아웃 파일을 추가  
+![](./img/26.png)
+```javascript
+export default function BlogLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <section>{children}</section>
+}
+```
+
+### Creating a dynamic segement  
+* 동적 세그먼트를 사용하면 데이터에서 생성된 경로를 만들 수 있음  
+    - 예를 들어, 각 blog 게시물에 대한 경로를 직접 만드는 대신, 동적 세그먼트를 만들어 블로그 게시물 데이터 기반으로 경로를 생성할 수 있음  
+    - 동적 세그먼트를 생성하려면 세그먼트 이름을 대괄호로 묶어야함  
+```javascript
+export default async function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const post = await getPost(slug)
+ 
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </div>
+  )
+}
+```  
+
+### Rendering with search params  
+* 서버 컴포넌트 page에서는 searchParams prop을 사용하여 검색 매개변수에 액세스 할 수 있음  
+```javascript
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const filters = (await searchParams).filters
+}
+```  
+* searchParams를 사용하면 해당 페이지는 동적 렌더링으로 처리  
+    - 왜냐하면 URL의 쿼리 파라미터를 읽기 위해 요청이 필요하기 때문  
+    - 클라이언트 컴포넌트는 useSearchParams Hook을 사용하여 검색 매개변수를 읽을 수 있음  
+
+
+
 ## 9월 10일 (3주차)  
 ### Folder and file conventions (폴더 및 파일 규칙)  
 * 최상위 폴더는 애플리케이션의 코드와 정적 자산을 구성하는 데 사용  
