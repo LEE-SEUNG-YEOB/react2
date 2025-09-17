@@ -1,5 +1,118 @@
 # 202030121 이승엽
 
+## 9월 10일 (3주차)  
+### Folder and file conventions (폴더 및 파일 규칙)  
+* 최상위 폴더는 애플리케이션의 코드와 정적 자산을 구성하는 데 사용  
+![](./img/2.png)  
+![](./img/3.png)  
+
+* 최상위 파일 (Top-level files)  
+    - 최상위 파일은 애플리케이션 구성, 종속성 관리, 미들웨어 실행, 모니터링 도구 통합, 환경 변수 정의에 사용  
+    - *다음 파일이 프로젝트 생성과 동시에 모두 생성되는건 아님  
+    - ![](./img/4.png)  
+
+* 라우팅 파일 (Routing Files)  
+    ![](./img/5.png)  
+    - 중첩 라우팅 (Nested routes)  
+    ![](./img/6.png)  
+    - 동적 라우팅 (Dynamic routes)
+    ![](./img/7.png)  
+    - 라우팅 그룹 및 비공개 폴더 (Route Groups private folders)  
+    ![](./img/8.png)  
+    - 병렬 및 차단 라우팅 (Parellel and Intercepted Routes)  
+    ![](./img/9.png)  
+
+* 메타데이터 파일 규칙 (Metadata file conventions)  
+    - 앱 아이콘 (app icons)  
+    ![](./img/10.png)  
+
+### Open Graph Protocol  
+* 웹사이트나 페이스북, 인스타그램, 카카오톡 등에 링크를 전달할 때 '미리보기'를 생성하는 프로토콜  
+    - Open Graph Protocol 이 대표적인 프로토콜  
+    - 페이스북이 주도하는 표준화 규칙으로 대부분의 SNS 플랫폼에서 활용  
+    - 모든 플랫폼이 동일한 방식으로 오픈 그래프를 처리하는건 아님  
+    - 웹페이지의 메타 태그에 선언  
+    - ```javascript
+        <head>
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://example.com/page.html">
+        <meta property="og:title" content="페이지 제목">
+        <meta property="og:description" content="페이지 설명 요약">
+        <meta property="og:image" content="https://example.com/image.jpg">
+        <meta property="og:site_name" content="사이트 이름">
+        <meta property="og:locale" content="ko_KR">
+        </head>
+        ```  
+
+### Organizing your project (프로젝트 구성하기)  
+* Next.js는 프로젝트 파일을 어떻게 구성하고 어디에 배치할지에 대한 제약이 없음  
+    - 하지만 프로젝트 구성에 도움이 되는 몇 가지 기능을 제공  
+
+* component의 계층 구조 Component hierarchy  
+    - 특수 파일에 정의된 컴포넌트는 특정 계층 구조로 렌더링  
+    ![](./img/11.png)  
+
+* layout과 template의 차이  
+    - 마스터 텍스트 스타일 편집  
+    ![](./img/12.png)  
+
+* component는 중첩된 라우팅에서 재귀적으로 렌더링  
+    - 즉, 라우팅 세그먼트의 component는 부모 세그먼트의 component 내부에 중첩   
+    ![](./img/13.png)  
+
+* 코로케이션 (Colocation) - 파일 및 폴더를 기능별로 그룹화하여 프로젝트의 구조를 명확하게 정의  
+    - app 디렉토리에서 중첩된 폴더는 라우팅 구조를 정의  
+    - 각 폴더는 URL 경로의 해당 세그먼트에 맵핑되는 라우팅 세그먼트를 나타냄  
+    ![](./img/14.png)  
+    - 즉, 프로젝트 파일을 app 디렉토리의 라우팅 세그먼트 내에 안전하게 배치하여 실수로 라우팅 되지 않도록 할 수 있음  
+    ![](./img/15.png)  
+
+* 비공개 폴더 (Private folders)  
+    - 비공개 폴더는 폴더 앞에 밑줄을 붙여서 만들 수 있음. _folderName  
+    - 해당 폴더가 비공개로 구현되는 세부 사항이기 때문에 라우팅 시스템에서 고려되어서는 안 되며, 따라서 해당 폴더와 모든 하위 폴더가 라우팅에서 제외됨  
+    ![](./img/16.png)  
+
+* app 디렉토리의 파일은 기본적으로 안전하게 코로케이션 될 수 있으므로, 코로케이션에 비공개 폴더는 불필요. 하지만 다음과 같은 경우에는 유용할 수 있음  
+    - UI 로직과 라우팅 로직을 분리  
+    - 프로젝트와 Next.js 생태계 전반에서 내부 파일을 일관되게 구성  
+    - 코드 편집기에서 파일을 정렬하고 그룹화  
+    - 향후 Next.js 파일 규칙과 관련된 잠재적인 이름 충돌 방지  
+
+* 라우팅 그룹 (Route grops)  
+    - 폴더를 괄호로 묶어 라우팅 그룹을 만들 수 있음 (folderName)  
+    - 해당 폴더가 구성 목적으로 사용되는 것을 의미하며, 라우터의 URL 경로에 포함되지 않아야 함  
+    ![](./img/17.png)  
+
+* 라우팅 그룹은 다음과 같은 경우에 유용  
+    - 사이트 섹션, 목적 또는 팀별로 라우트를 구성  
+        - 예: 마케팅 페이지, 관리 페이지 등  
+    - 동일한 라우팅 세그먼트 수준에서 중첩 레이아웃 활성화  
+        - 공통 세그먼트 안에 여러 개의 루트 레이아웃을 포함하여 여러 개의 중첩 레이아웃 만들기  
+        - 공통 세그먼트의 라우팅 하위 그룹에 레이아웃 추가  
+    ![](./img/18.png)  
+    ![](./img/19.png)  
+
+* src 디렉토리  
+    - Next.js는 애플리케이션 코드를 옵션으로 선택하는 src폴더 내에 저장할 수 있도록 지원  
+    - 애플리케이션 코드와 주로 프로젝트 루트에 위치하는 프로젝트 설정 파일을 분리할 수 있음  
+
+### Organize routes without affecting the URL path  
+* URL 경로에 영향을 주지 않고 라우트를 구성  
+    - markting 및 shop 내부의 라우트가 동일한 URL 계층 구조를 공유하더라도, 폴더 안에 layout.js 파일을 추가하여 각 그룹에 대해 다른 레이아웃을 만들 수 있음  
+    ![](./img/20.png)  
+
+### Opthing specific segments into a layout  
+* 레이아웃에 특정 세그먼트 선택  
+    - 특정 라우트를 레이아웃에 포함하려면 새 라우팅 그룹을 만들고, 동일한 레이아웃을 공유하는 라우팅 폴더들을 이 그룹으로 이동  
+    - 그룹 외부 라우팅 폴더이는 레이아웃을 공유하지 않음  
+    ![](./img/21.png)  
+
+### Opting for loading skeletons on a specific route  
+* 특정 라우트에 스켈레톤 로딩을 적재하도록 선택  
+    - loading.js 파일을 통해 특정 라우트 폴더에 로딩 스켈레톤을 적용하려면, 새 라우팅 그룹을 만든 다음 해당 라우팅 그룹 내부로 loading.tsx를 이동  
+    ![](./img/22.png)  
+
+
 ## 9월 3일 (2주차)
 ### IDE 플러그인  
 * Next.js에는 사용자 정의 TypeScript 플러그인과 유형 검사기가 포함  
