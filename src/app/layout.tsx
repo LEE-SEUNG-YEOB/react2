@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export default function RootLayout({
   children,
 }: {
@@ -7,6 +9,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header>=== Root Layout ===</header>
+        <Link href="/">Home</Link> |{" "}
+        <Link href={"/blog"}>Blog</Link> |{" "}
+        <Link href={"/products"}>Products</Link> |
         <main>{children}</main>
         <footer>=== Root Footer ===</footer>
       </body>

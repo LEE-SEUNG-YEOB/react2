@@ -1,17 +1,17 @@
+import Link from "next/link";
 import { posts } from "./posts";
 
-export default function BlogPage() {
+export default function BlogPage3() {
   return (
-    <>
-      <h1>Blog Posts</h1>
+    <div>
+      <h1>블로그3 목록</h1>
       <ul>
         {posts.map((post) => (
           <li key={post.slug}>
-            <h2>{post.title}</h2>
-            <p>{post.content}</p>
+            <Link href={`/blog3/${post.slug}`}>{post.title}</Link>
           </li>
         ))}
       </ul>
-    </>
-  )
+    </div>
+  );
 }

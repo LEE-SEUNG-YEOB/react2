@@ -1,5 +1,121 @@
 # 202030121 이승엽
 
+## 9월 24일 (5주차)
+### searchParams  
+* URL의 쿼리 문자열을 읽는 방법  
+  - 예시 url : /products?category=shoes&page=2  
+  - 여기서 category=shoes, page=2가 parameters  
+  - searchParams는 컴포넌트의 props로 전달되며, 내부적으로는 URLSearchParams처럼 작동  
+  ![](./img/27.png)  
+
+### Linking between pages  
+* <Link> 컴포넌트를 사용하여 경로 사이를 탐색할 수 있음  
+
+* <Link>는 HTML <a> 태그를 확장하여 prefetching 및 client-side navigation 기능을 제공하는 Next.js의 기본제공 컴포넌트
+
+### 왜 동적 렌더링이 되는가  
+* Next.js에서 페이지는 크게 정적 또는 동적으로 렌더링될 수 있음  
+
+* searchParams는 요청이 들어와야만 값을 알 수 있기 때문에, Next.js는 이 페이지를 정적으로 미리 생성할 수 없고, 요청이 올 때마다 새로 렌더링해야함  
+  - 따라서 해당 페이지는 자동으로 동적 렌더링으로 처리됨  
+```javascript
+import Link from 'next/link'
+ 
+export default async function Post({ post }) {
+  const posts = await getPosts()
+ 
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.slug}>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### Route 방식 비교  
+![](./img/28.png)
+* Next.js의 라우팅 방식 : Pages Router VS App Router  
+![](./img/29.png)
+
+### How navigation works  
+* Next.js에서 네비게이션이 어떻게 작동하는지 이해하려면 다음 개념에 익숙해져야함  
+  - Server Rendering  
+  - Prefetching  
+  - Streaming  
+  - Client-side transitions  
+
+### Server Rendering  
+* Next.js에서 레이아웃과 페이지는 기본적으로 React 서버 컴포넌트  
+
+* 초기 네비게이션 및 후속 네비게이션 할 때, 서버 컴포넌트 페이로드는 클라이언트로 전송되기 전에 서버에서 생성
+
+* 서버 렌더링에는 발생 시점에 따라 두 가지 유형이 있음  
+  - 정적 렌더링은 빌드 시점이나 재검증 중에 발생하며, 결과는 캐시됨  
+  - 동적 렌더링은 클라이언트 요청에 대한 응답으로 요청 시점에 발생  
+
+* 서버 렌더링의 단점은 클라이언트가 새 경로를 표시하기 전에 서버의 응답을 기다려야함  
+  - Next.js는 사용자가 방문할 가능성이 높은 경로를 미리 가져 오고, 클라이언트 측 전환을 수행하여 지연 문제를 해결  
+
+### Prefetching  
+* 프리페칭은 사용자가 해당 경로로 이동하기 전에 백그라운드에서 해당 경로를 로드하는 프로세스  
+
+* 사용자가 링크를 클릭하기 전에 다음 경로를 렌더링하는 데 필요한 데이터가 클라이언트 측에 이미 준비되어 있기 때문에 애플리케이션에서 경로 간 이동이 즉각적으로 느껴짐  
+
+* Next.js는 <Link> 컴포넌트와 연결된 경로를 자동으로 사용자 뷰포트에 미리 가져옴  
+
+* <a> 태그를 사용하면 프리페칭을 하지 않음
+```typescript
+import Link from 'next/link'
+ 
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <nav>
+          {/* Prefetched when the link is hovered or enters the viewport */}
+          <Link href="/blog">Blog</Link>
+          {/* No prefetching */}
+          <a href="/contact">Contact</a>
+        </nav>
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+* 미리 가져오는 경로의 양은 정적 경로인지 동적 경로인지에 따라 달라짐  
+  - 정적 경로 : 전체 경로가 프리페치됨  
+  - 동적 경로 : 프리페치를 건너뛰거나, loading.tsx가 있는 경우 경로가 부분적으로 프리페칭됨  
+
+* Next.js는 동적 라우팅을 건너뛰거나 부분적으로 프리페칭하는 방법으로 사용자가 방문하지 않을 수 있는 경로에 대한 서버의 불필요한 작업을 방지  
+  - 그러나 네비게이션 전에 서버 응답을 기다리면 사용자에게 앱이 응답하지 않는다는 인상을 줄 수 있음  
+  - 동적 경로에 대한 네비게이션 환경을 개선하려면 스트리밍을 사용할 수 있음  
+  ![](./img/30.png)
+
+### Streaming
+* 스트리밍을 사용하면 서버가 전체 경로가 렌더링될 때까지 기다리지 않고, 동적 경로의 일부가 준비되는 즉시 클라이언트에 전송할 수 있음  
+  - 즉, 페이지의 일부가 아직 로드 중이더라도 사용자는 더 빨리 콘텐츠를 볼 수 있음  
+
+* 동적 경로의 경우, 부분적으로 미리 가져올 수 있다는 뜻.
+  - 즉, 공유 레이아웃과 로딩 스켈레톤을 미리 요청할 수 있음  
+  - loading skeletons : 웹 또는 앱에서 콘텐츠가 로드되는 동안 사용자에게 보여지는 빈 화면의 일종  
+  ![](./img/31.png)  
+
+* Next.js는 백그라운드에서 page.tsx 콘텐츠를 <Suspense> 경계로 자동 래핑  
+  - 미리 가져온 대체 UI는 경로가 로드되는 동안 표시되고, 준비가 되면 실제 콘텐츠로 대체됨  
+
+* loading.tsx의 이점 :  
+  - 사용자에게 즉각적인 네비게이션과 시각적 피드백 제공  
+  - 공유 레이아웃은 상호 작용이 가능하고, 네비게이션은 중단될 수 있음  
+  - 개선된 핵심 웹 지표 : TTFB, FCP, TTI  
+
+* 네비게이션 환경을 더욱 개선하기 위해 Next.js는 <Link> 컴포넌트를 사용하여 클라이언트 측 전환을 수행  
+
+
 ## 9월 17일 (4주차)
 ### git checkout VS switch 차이  
 * checkout은 브랜치를 이동하고 파일도 변경 가능. 이 때문에 실수할 위험성이 있음  
