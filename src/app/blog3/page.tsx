@@ -4,11 +4,11 @@ import { posts } from "./posts";
 export default function BlogPage() {
   return (
     <div>
-      <h1>블로그1 목록</h1>
+      <h1>블로그3 목록</h1>
       <ul>
         {posts.map((post) => (
           <li key={post.slug}>
-            <Link href={`/blog1/${post.slug}`}>{post.title}</Link>
+            <Link href={`/blog3/${post.slug}`}>{post.title}</Link>
           </li>
         ))}
       </ul>

@@ -10,7 +10,9 @@ export default function RootLayout({
       <body>
         <header>=== Root Layout ===</header>
         <Link href="/">Home</Link> |{" "}
-        <Link href={"/blog"}>Blog</Link> |{" "}
+        <Link href={"/blog"}>Blog1</Link> |{" "}
+        <Link href={"/blog2"}>Blog2</Link> |{" "}
+        <Link href={"/blog3"}>Blog3</Link> |{" "}
         <Link href={"/products"}>Products</Link> |
         <main>{children}</main>
         <footer>=== Root Footer ===</footer>

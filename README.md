@@ -1,5 +1,166 @@
 # 202030121 이승엽
 
+## 10월 1일 (6주차)  
+### 동적 경로 없는 loading.tsx  
+* 동적 경로로 이동할 때 클라이언트는 표시하기 전에 서버의 응답을 기다려야함  
+  - 이로 인해 사용자는 앱이 응답하지 않는다는 인상을 받을 수 있음  
+
+* 부분 프래페칭을 활성화하고, 즉시 네비게이션을 트리거하고, 경로가 렌더링되는 동안 로딩 UI를 표시하려면 동적 경로에 loading.tsx를 추가하는 것이 좋음  
+```typescript
+export default function Loding() {
+  return <LoadingSkeleton />
+} 
+```   
+
+### 동적 세그먼트 없는 generateStaticParams  
+* 동적 세그먼트는 사전 렌더링될 수 있지만, generateStaticParams가 누락되어 사전 렌더링되지 않는 경우, 해당 경로는 요청 시점에 동적 렌더링으로 대체  
+  - generateStaticParams를 추가하여 빌드 시점에 경로가 정적으로 생성되도록 함  
+```typescript
+export async function generateStaticParams() {
+  const posts = await fetch('https://.../posts').then((res) => res.json())
+ 
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
+ 
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  // ...
+}
+```  
+
+### await이 없어도 async를 붙여 두는 이유  
+* Next.js 13+의 App Router에서 page.tsx 같은 Server Component는 비동기 렌더링을 전제로 하고 있음  
+  - 즉, page.tsx 안에서 데이터를 fetch하는 경우가 많기 때문에 async를 기본으로 붙여도 전혀 문제가 없슴  
+    - 일관성 유지 : 같은 프로젝트 안에서 어떤 페이지는 async, 어떤 페이지는 일반 function이면 혼란스러울 수 있음  
+    - 확장성 : 지금은 더미 데이터(posts.find(...))를 쓰지만, 나중에 DB나 API에서 데이터를 가져올 때 await fetch(...) 같은 코드가 들어갈 수 있기 때문에, 미리 async를 붙여 두면 수정할 필요가 없음  
+    - React Server Component 호환성 : Server Component는 Promise를 반환할 수 있어야 하고, Next.js는 내부적으로 async 함수 패턴에 맞춰 최적화된 렌더링 파이프라인을 갖고 있어서 async가 붙어 있어도 불필요한 오버헤드가 거의 없음  
+
+### generateStaticParams가 없는 경우와 있는 경우 비교  
+* generateStaticParams가 없는 경우 Next.js는 slug 값을 빌드 타임에는 모르는 상태  
+  - 따라서 slug 페이지에 접속하면 Next.js가 서버에서 요청할 때마다 해당 페이지를 동적으로 렌더링하며, 빌드의 결과물로 HTML 파일은 생성되지 않음  
+
+* generateStaticParams가 있는 경우 Next.js에 빌드 타임에 생성할 slug 목록을 알려줄 수 있음  
+  - 이 경우에는 지정한 slug에 대해서는 정적 HTML + JSON이 빌드 타임에 생성되어, 최초 접근 시 SSR이 필요 없이 미리 만들어진 페이지 제공  
+![](./img/32.png)  
+
+### 느린 네트워크  
+* 네트워크가 느리거나 불안정한 경우, 사용자가 링크를 클릭하기 전에 프리페칭이 완료되지 않을 수 있음  
+  - 이 것은 정적 경로와 동적 경로 모두에 영향을 미칠 수 있음  
+  - 이 경우, loading.tsx 파일이 아직 프리페칭되지 않았기 때문에 즉시 표시되지 않을 수 있음  
+  - 체감 성능을 개선하기 위해 useLinkStatus Hook을 사용하여 전환이 진행되는 동안 사용자에게 인라인 시각적 피드백을 표시할 수 있음  
+```typescript
+'use client'
+
+import { useLinkStatus } from 'next/link'
+
+export default function LoadingIndicator() {
+  const { pending } = useLinkStatus()
+  return pending ? (
+    <div role="status" aria-label="Loading" className="spinner" />
+  ) : null
+}
+
+```  
+
+* 초기 애니메이션 지연을 추가하고, 애니메이션을 보이지 않게 시작하면 로딩 표시기를 디바운스 할 수 있음  
+  - 즉, 로딩 표시기는 네비게이션이 지정된 지연 시간보다 오래 걸리는 경우에만 표시  
+```typescript
+.spinner {
+  /* ... */
+  opacity: 0;
+  animation:
+    fadeIn 500ms 100ms forwards,
+    rotate 1s linear infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+```  
+
+### 프리페칭 비활성화  
+* Link 컴포넌트에서 프리페치 prop을 false로 설정하여 프리페치를 사용하지 않도록 선택할 수 있음  
+  - 이는 대량의 링크목록을 랜더링할 때 불필요한 리소스 사용을 방지하는데 유용함  
+
+* 그러나 프리페칭을 비활성화하면 다음과 같은 단점이 있음  
+  - 정적 라우팅은 사용자가 링크를 클릭할 때만 가져옴  
+  - 동적 라우팅은 클라이언트가 해당 경로로 이동하기 전에 서버에서 먼저 렌더링 되어야함  
+  - 프리페치를 완전히 비활성화하지 않고 리소스 사용량을 줄이려면, 마우스 호버 시에만 프리페치를 사용하면 됨  
+    - 이렇게 하면 뷰포트의 모든 링크가 아닌, 사용자가 방문할 가능성이 높은 경로로만 프리페치가 제한  
+
+### Hydration이 완료되지 않음  
+* Link는 클라이언트 컴포넌트이기 때문에 라우팅 페이지를 프리페치하기 전에 하이드레이션해야 함  
+
+* 초기 방문 시 대용량 자바스크립트 번들로 인해 하이드레이션이 지연되어 프리페칭이 바로 시작되지 않을 수 있음  
+
+* React는 선택적 Hydration을 통해 이를 완화하며, 다음과 같은 방법으로 이를 더욱 개선할 수 있음  
+  - @next/bundle-analyzer 플러그인을 사용하면 대규모 종속성을 제거하며, 번들 크기를 식별하고 줄일 수 있음  
+  - 가능하다면 클라이언트에서 서버로 로직을 이동  
+
+### Hydration이란?  
+* Hydration이란 서버에서 생성된 HTML에 JavaScript 로직을 추가하여 동적으로 상호작용이 가능하도록 만드는 과정을 의미  
+  - 특히, React, Vue 등 프론트엔드 라이브러리나 프레임워크에서 많이 사용되는 용어로, 서버 사이드 렌더링(SSR)으로 생성된 정적인 HTML에 클라이언트 측에서 JavaScript를 통해 이벤트 리스너, 상태 관리 등을 주입하여 인터랙티브한 웹 페이지로 변환하는 과정을 말함  
+
+* SSR과 Hydration  
+  - SSR은 서버에서 미리 HTML을 생성하여 사용자에게 전달하는 방식
+  - 초기 로딩 속도가 빠르다는 장점이 있지만, 서버에서 생성된 HTML은 정적인 상태이므로 JavaScript 코드를 통해 동적인 상호작용을 구현하려면 추가적인 작업이 필요  
+
+* Hydration의 역할  
+  - Hydration은 SSR로 생성된 정적인 HTML에 클라이언트 측 JavaScript를 연결하여, 페이지가 로드된 후에도 사용자와의 상호작용이 가능하도록 만듬  
+
+### Examples – 네이티브 히스토리 API  
+* Next.js를 사용하면 기본 window.history.pushState 및 window.history.replaceState 메서드를 사용하여 페이지를 다시 로드하지 않고도 브라우저의 기록 스택을 업데이트할 수 있음  
+
+* pushState 및 replaceState 호출은 Next.js 라우터에 통합되어 usePathname 및 useSearchParams와 동기화할 수 있음  
+
+* window.history.pushState  
+  - 이것을 사용하여 브라우저의 기록 스택에 새 항목을 추가할 수 있음  
+  - 사용자는 이전 상태로 돌아갈 수 있음  
+
+* window.history.replaceState  
+  - 브라우저의 기록 스택에서 현재 항목을 바꾸려면 이 기능을 사용  
+  - 사용자는 이전 상태로 돌아갈 수 없음  
+```javascript
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export function LocaleSwitcher() {
+  const pathname = usePathname()
+
+  function switchLocale(locale: string) {
+    // e.g. '/en/about' or '/fr/contact'
+    const newPath = `/${locale}${pathname}`
+    window.history.replaceState(null, '', newPath)
+  }
+
+  return (
+    <>
+      <button onClick={() => switchLocale('en')}>English</button>
+      <button onClick={() => switchLocale('fr')}>French</button>
+    </>
+  )
+}
+```
+
+
 ## 9월 24일 (5주차)
 ### searchParams  
 * URL의 쿼리 문자열을 읽는 방법  
@@ -9,9 +170,9 @@
   ![](./img/27.png)  
 
 ### Linking between pages  
-* <Link> 컴포넌트를 사용하여 경로 사이를 탐색할 수 있음  
+* Link 컴포넌트를 사용하여 경로 사이를 탐색할 수 있음  
 
-* <Link>는 HTML <a> 태그를 확장하여 prefetching 및 client-side navigation 기능을 제공하는 Next.js의 기본제공 컴포넌트
+* Link 는 HTML <a> 태그를 확장하여 prefetching 및 client-side navigation 기능을 제공하는 Next.js의 기본제공 컴포넌트
 
 ### 왜 동적 렌더링이 되는가  
 * Next.js에서 페이지는 크게 정적 또는 동적으로 렌더링될 수 있음  
@@ -65,7 +226,7 @@ export default async function Post({ post }) {
 
 * 사용자가 링크를 클릭하기 전에 다음 경로를 렌더링하는 데 필요한 데이터가 클라이언트 측에 이미 준비되어 있기 때문에 애플리케이션에서 경로 간 이동이 즉각적으로 느껴짐  
 
-* Next.js는 <Link> 컴포넌트와 연결된 경로를 자동으로 사용자 뷰포트에 미리 가져옴  
+* Next.js는 Link 컴포넌트와 연결된 경로를 자동으로 사용자 뷰포트에 미리 가져옴  
 
 * <a> 태그를 사용하면 프리페칭을 하지 않음
 ```typescript
