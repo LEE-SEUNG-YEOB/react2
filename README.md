@@ -1,5 +1,157 @@
 # 202030121 이승엽
 
+
+## 10월 17일 (7주차)  
+### Introduction  
+* 기본적으로 layout과 page는 server component  
+
+* sever에서 데이터를 가져와 UI의 일부를 렌더링할 수 있고, 선택적으로 결과를 cache한 후 클라이언트로 스트리밍할 수 있음  
+  - 상호작용이나 브라우저 API가 필요한 경우 client component를 사용하여 기능을 계층화할 수 있음  
+
+### server 및 client component를 언제 사용하나  
+* client 환경과 server 환경은 서로 다른 기능을 가지고 있음  
+  - server 및 client component를 사용하면 사용하는 사례에 따라 각각의 환경에서 필요한 로직을 실행할 수 있음  
+
+* 다음과 같은 항목이 필요할 경우에는 client component를 사용  
+  - state 및 event handler, 예: onClick, onChange  
+  - Lifecycle logic, 예: useEffect  
+  - 브라우저 전용 API, 예: localStorage, window, Navigator.geolocation 등  
+  - 사용자 정의 Hook  
+
+* 다음과 같은 항목이 필요할 경우에는 server component를 사용  
+  - 서버의 데이터베이스 혹은 API에서 data를 가져오는 경우  
+  - API key, token 및 기타 보안 데이터를 client에 노출하지 않고 싶을 때  
+  - 브라우저로 전송되는 JavaScript의 양을 줄이고 싶을 때  
+  - 콘텐츠가 포함된 첫 번째 페인트(First Contentful Paint-FCP) 를 개선하고, 콘텐츠를 client에 점진적으로 스트리밍할 때  
+
+* 코드 예시  
+```typescript
+import LikeButton from '@/app/ui/like-button'
+import { getPost } from '@/lib/data'
+
+export default async function Page({ params }: { params: { id: string } }) {
+  const post = await getPost(params.id)
+
+  return (
+    <div>
+      <main>
+        <h1>{post.title}</h1>
+        {/* ... */}
+        <LikeButton likes={post.likes} />
+      </main>
+    </div>
+  )
+}  
+
+'use client'
+
+import { useState } from 'react'
+
+export default function LikeButton({ likes }: { likes: number }) {
+  // ...
+}
+```  
+
+### Optimistic Update 낙관적 업데이트  
+* 사용자에 의해서 이벤트(예: 좋아요 버튼 클릭)가 발생하면,
+서버 응답을 기다리지 않고 클라이언트(UI)를 즉시 변경(업데이트)  
+  - 서버에 보낸 요청의 성공을 낙관(optimistic) 한다고 가정해서
+먼저 화면에 변화를 보여줌  
+  - 서버에서 응답이 없으면, UI를 원래 상태로 되돌림  
+  - 네트워크 지연 동안에도 앱이 “빠르게 반응”하도록 느끼게 하는 것이 목적  
+
+* 장점  
+  - 서버 응답 속도와 관계없이 즉각적인 피드백을 제공하여 사용자 경험을 향상  
+  - 네트워크 상태가 나쁘거나 응답 시간이 길어도 사용자에게 체감되는 속도가 빠름  
+
+* 단점  
+  - 서버에서 오류가 발생하면, 사용자에게는 잠시 동안 잘못된 정보가 표시될 수 있음  
+  - 오류 발생 시 복구(rollback) 로직이 필요  
+
+### Pessimistic Update  
+* 이벤트가 발생하면 먼저 서버에 요청을 보내고,
+서버에서 성공 응답을 받은 후에 클라이언트의 UI를 업데이트  
+
+* 장점  
+  - 서버의 응답을 기반으로 하기 때문에 데이터의 일관성이 보장  
+  - 오류가 발생할 가능성이 낮고, 잘못된 정보가 표시될 염려가 없음  
+
+* 단점  
+  - 사용자는 서버의 응답을 기다려야 하므로, 응답이 늦어지면 사용자 경험이 저하될 수 있음  
+  - 히 네트워크 지연이 발생할 경우 체감 속도가 느려짐  
+![](./img/33.png)  
+
+### Next.js에서 server와 client component 작동원리  
+*  server component의 작동  
+  - server에서 Next.js는 React의 API를 사용하여 렌더링을 조정  
+  - 렌더링 작업은 개별 라우팅 세그먼트 별 묶음(Chunk) 으로 나뉨  
+
+* server component는 RSC Payload(React Server Component Payload) 라는
+특수한 데이터 형식으로 렌더링  
+  - client component와 RSC Payload는 HTML을 미리 렌더링(prerender) 하는 데 사용  
+
+* React Server Component Payload(RSC)란  
+  - RSC 페이로드는 렌더링된 React server component 트리의 압축된 바이너리 표현  
+  - client에서 React가 브라우저의 DOM을 업데이트하는 데 사용  
+
+* client component의 작동 (첫 번째 load)  
+  - HTML은 사용자에게 경로(라우팅 페이지)의 비대화형 미리보기를 즉시 보여주는 데 사용  
+  - RSC 페이로드는 client와 server component 트리를 조정하는 데 사용  
+  - JavaScript는 client component를 hydration하고, 애플리케이션을 대화형으로 만드는 데 사용  
+
+* Hydration  
+  - 이벤트 핸들러를 DOM에 연결하여 정적 HTML을 인터렉티브하게 만드는 React의 프로세스  
+
+### Example  
+* client component 사용  
+  - 파일의 맨 위, 즉 import문 위에 "use client" 지시문을 추가하여 client component를 생성할 수 있음  
+  - "use client"는 server와 client 모듈 트리 사이의 경계를 선언하는 데 사용  
+  - 파일에 "use client"로 표시되면 해당 파일의 모든 import와 자식 component는 client 번들의 일부로 간주됨  
+  - 즉, client를 대상으로 하는 모든 component에 이 지시문을 추가할 필요가 없음  
+```typescript
+  import { useState } from 'react'
+
+  export default function Counter() {
+    const [count, setCount] = useState(0)
+    return (
+      <div>
+        <p>{count} likes</p>
+        <button onClick={() => setCount(count + 1)}>like</button>
+      </div>
+    )
+  }
+```  
+
+### server에서 client component로 데이터 전달 
+
+* props를 사용하여 server component에서 client component로 데이터를 전달할 수 있음  
+```typescript
+import LikeButton from '@/app/ui/like-button'
+import { getPost } from '@/lib/data'
+
+export default async function Page({ params }: { params: { id: string } }) {
+  const post = await getPost(params.id)
+  return <LikeButton likes={post.likes} />
+}
+return (
+  <div>
+    <main>
+      <h1>{post.title}</h1>
+      {/* ... */}
+      <LikeButton likes={post.likes} />
+    </main>
+  </div>
+)
+```  
+
+* 다른 방법으로는 use Hook을 사용하여 server component에서 client component로 데이터를 스트리밍할 수도 있음  
+
+* client component에 전달되는 Props는 React로 직렬화(Serialization) 가 가능해야함  
+  - 직렬화란?  
+    - 일반적으로는 메모리에 있는 복잡한 데이터를 바이트의 연속 형태로 변환하는 과정을 말함  
+    - 즉, 자바스크립트의 객체나 배열처럼 구조가 있는 데이터를 파일로 저장하거나, 네트워크로 전송하기 쉽게 만드는 과정  
+    - React나 Next.js 같은 프레임워크는 컴포넌트의 상태나 트리 구조를 서버에서 직렬화하여 클라이언트로 전송하고, 클라이언트에서 역직렬화(Deserialization) 하는 과정을 자주 수행  
+
 ## 10월 1일 (6주차)  
 ### 동적 경로 없는 loading.tsx  
 * 동적 경로로 이동할 때 클라이언트는 표시하기 전에 서버의 응답을 기다려야함  
