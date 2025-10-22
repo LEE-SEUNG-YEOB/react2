@@ -1,4 +1,6 @@
 import Link from "next/link"
+import ThemeProvider from "./components/theme-provider"
+import ThemeStatus from "./components/theme-status"
 
 export default function RootLayout({
   children,
@@ -8,6 +10,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <ThemeProvider>
         <header>=== Root Layout ===</header>
         <Link href="/">Home</Link> |{" "}
         {/* <Link href={"/blog"}>Blog1</Link> |{" "}
@@ -19,8 +22,10 @@ export default function RootLayout({
         <Link href={"/2"}>2</Link> |{" "}
         <Link href={"/3"}>3</Link> |{" "}
         <Link href={"/4"}>4</Link>
+        <ThemeStatus />
         <main>{children}</main>
         <footer>=== Root Footer ===</footer>
+        </ThemeProvider>
       </body>
     </html>
   )

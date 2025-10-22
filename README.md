@@ -1,5 +1,109 @@
 # 202030121 이승엽
 
+## 10월 22일 (8주차)  
+### server 및 클라이언트 컴포넌트 인터리빙  
+* 인터리빙은 일반적으로 여러 데이터 블록이나 비트를 섞어서 전송하거나 처리하여 오류 발생 시 영향을 최소화하는 기술  
+  - 특히 데이터 통신에서 버스트 오류를 줄이고 오류 정정 코드를 효과적으로 사용하기 위해 사용됨  
+
+* 프로그래밍이나 문서에서는 server 컴포넌트와 클라이언트 컴포넌트가 섞여서 동작하는 것을 의미  
+  - server 컴포넌트를 클라이언트 컴포넌트에 prop를 통해 전달할 수 있음  
+  - 이를 통해 client component 내에서 server에서 렌더링된 UI를 시각적으로 중첩 가능  
+  ```typescript
+  'use client'
+
+  export default function Modal({ children }: { children: React.ReactNode }) {
+    return <div>{children}</div>
+  }
+  ```  
+
+### Context란  
+* Next.js에서 Context는 React의 Context API를 사용하여 컴포넌트 사이에 데이터를 공유하는 메커니즘을 의미  
+  - 즉, 부모 컴포넌트에서 자식 컴포넌트로 직접 props를 전달하지 않고도, 특정 데이터를 필요한 컴포넌트에서 쉽게 접근하고 사용할 수 있도록 도와줌  
+
+* 전역 상태 관리  
+  - Context를 사용하면 애플리케이션 전체에서 공유해야 하는 데이터를 중앙 집중적으로 관리할 수 있음  
+    - 예) 사용자 정보, 테마 설정 등  
+
+* props drilling 문제 해결  
+  - 컴포넌트 트리가 깊어질수록 props를 계속 전달해야 하는 번거로움을 줄여줌  
+  - ontext를 사용하면 필요한 컴포넌트에서 바로 데이터를 가져올 수 있으므로, 코드의 가독성과 유지 보수성을 용이하게 함  
+
+* React 컴포넌트에서 사용  
+  - Context는 React에서 제공하는 기능이기 때문에, Next.js에서도 React 컴포넌트를 사용하여 구현  
+
+* MyContext는 Context 객체를 나타내고, MyContext.Provider는 MyComponet에 데이터를 제공  
+```typescript
+// Context 생성
+const MyContext = React.createContext();
+
+function MyComponent() {
+  const value = useContext(MyContext);
+  return <div>{value}</div>;
+}
+
+function App() {
+  return (
+    <MyContext.Provider value="Hello from Context">
+      <MyComponent />
+    </MyContext.Provider>
+  );
+}
+
+```  
+
+### Context provider  
+* React Context는 일반적으로 아래 테마처럼 전역 상태를 공유하는 데 사용  
+  - 그러나 server component에서는 React Context가 지원되지 않음  
+  - Context를 사용하려면 children을 허용하는 client component로 만들어야함  
+```typescript
+'use client'
+
+import { createContext } from 'react'
+
+export const ThemeContext = createContext({})
+
+export default function ThemeProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <ThemeContext.Provider value="dark">{children}</ThemeContext.Provider>
+}
+
+```
+
+* TypeScript의 유니온 타입(Union Type)이란?  
+  - '|'(파이프)로 여러 타입을 연결해서 “이 값은 각각의 타입 중 하나가 될 수 있다”는 것을 지정  
+  - 드에서 문자열 리터럴 유니온 타입의 경우, state 값으로 'light' 또는 'dark'만 설정할 수 있어 코드 자동완성과 타입 안정성이 향상  
+
+* line22는 다음과 같은 의미  
+  - document.documentElement는 HTML 문서의 <html> 요소를 가리킴  
+  - .dataset.theme = theme은 <html> 태그에 data-theme 속성을 추가하는 코드  
+
+* useEffect의 두 번째 인자 [theme]는 의존성 배열(dependency array)  
+  - theme 값이 변경될 때마다 useEffect 안의 코드가 다시 실행  
+  - 즉, 테마가 바뀔 때마다 HTML의 data-theme 속성도 업데이트
+```css
+html[data-theme='light'] {
+  background-color: white;
+  color: black;
+}
+
+html[data-theme='dark'] {
+  background-color: black;
+  color: white;
+}
+```  
+
+* ThemeContext.Provider  
+  - createContext 함수를 호출하면, React는 Context 객체 하나를 만들어줌  
+  - 이 객체 안에는 여러가지 속성이 있는데, 대표적인 것이 다음 두 가지  
+    - ThemeContext.Provider, ThemeContext.Consumer  
+  - 즉, Provider는 createContext()를 호출하면 자동으로 생성되는 React 컴포넌트  
+  - ThemeContext.Provider 컴포넌트에 현재 theme state와 함께 toggleTheme 함수도 props로 전달  
+    - 즉, 하위 컴포넌트에서는 현재 theme state를 알 수 없기 때문에,버튼 쪽으로 toggleTheme 함수와 함께 theme state를 함께 전달  
+    
+
 
 ## 10월 17일 (7주차)  
 ### Introduction  
