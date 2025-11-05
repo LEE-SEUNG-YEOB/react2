@@ -1,5 +1,212 @@
 # 202030121 이승엽
 
+## 10월 29일 (9주차)
+### Context provicer의 실행 과정  
+* Context 생성  
+  - createContext(...)로 Context 객체 만듬  
+  - 초기값(default value)은 provider가 없을 때 사용할 fallback값 입니다  
+    - (여기선 theme: 'light', toggleTheme: () => {})  
+
+* 이 파일 내부에서 ThemeProvider 컴포넌트를 정의  
+  - useState로 theme 상태를 관리 (예: 'light' / 'dark')  
+  - toggleTheme 함수는 setTheme을 호출해 상태를 변경  
+  - useEffect로 상태 변경 시 document.documentElement.dataset.theme에 값을 기록 (전역 스타일 적용 용도)  
+
+* Provider 배치 (RootLayout)  
+  - RootLayout에서 ThemeProvider로 루트(또는 필요한 하위 트리)를 감싸줌  
+  ```tsx
+  <ThemeProvider>
+  <html>…{children}…</html>
+  </ThemeProvider>
+  ```  
+  - 이렇게 하면 Provider 하위에 렌더링 되는 모든 컴포넌트들이 ThemeContext에 접근할 수 있음  
+  - children은 RootLayout으로 전달된 자식 컴포넌트들을 의미하고, Provider가 그들을 감싸므로 자식들이 Context에 접근이 가능해지게됨  
+
+* Consumer 사용 (theme-status.tsx)  
+  - ThemeStatus는 ‘use client’로 클라이언트 컴포넌트이며, useContext(ThemeContext)를 사용해 value를 읽어 들임  
+  ```tsx
+  const { theme, toggleTheme } = useContext(ThemeContext)
+  ```  
+  - UI에서는 theme 값을 표시하고, 버튼 클릭 시 toggleTheme()을 호출  
+
+* Context provider의 동작 순서  
+  1. 사용자가 ThemeStatus의 버튼 클릭  
+  2. toggleTheme() 호출  
+      - (ThemeStatus가 Provider의 함수를 호출)  
+  3. Provider 내부의 setTheme이 실행되어 theme 상태가 변경  
+  4. 상태 변경으로 Provider와 그 하위 컴포넌트들이 리렌더링되어 theme 값이 최신으로 반영  
+  5. useEffect가 실행되어 `document.documentElement.dataset.theme` 값도 갱신  
+      - 글로벌 스타일 반영  
+
+### Context provider 순서도 형식으로 정리  
+* Theme Context의 동작 흐름을 순서도 형식으로 정리한 것  
+  - 앱 시작 / RootLayout 렌더  
+    - RootLayout이 렌더되고 ThemeProvider로 children을 감쌈  
+  - Context 생성 (초기화)  
+    - ThemeContext = createContext(...) 가 정의되어 있음 (기본값 제공)  
+  - Provider 인스턴스 생성  
+    - ThemeProvider 컴포넌트가 실행되어 내부 state(theme, setTheme) 생성 (useState)  
+    - Provider의 value = { theme, toggleTheme }로 설정  
+  - 하위 트리 렌더링  
+    - Provider로 감싼 children(페이지/컴포넌트)이 렌더  
+    - 이 하위 트리는 Context에 접근 가능  
+  - Consumer 사용: ThemeStatus 렌더  
+    - ThemeStatus가 렌더되어 useContext(ThemeContext)로 { theme, toggleTheme }를 가져옴  
+  - 사용자 상호작용: 버튼 클릭  
+    - 사용자가 ThemeStatus의 버튼을 클릭하면 toggleTheme() 호출  
+  - 상태 변경 내부 처리  
+    - ThemeProvider의 toggleTheme가 setTheme을 호출하여 theme 상태를 변경 (예: 'light' → 'dark')  
+![](./img/34.png)
+
+### 외부(서드 파티) component  
+* client 전용 기능에 의존하는 외부 component를 사용하는 경우, 해당 component를 client component에 래핑하여 예상대로 작동하는지 확인할 수 있음  
+  - 예를 들어, `<Carousel />`은 acme-carousel 패키지에서 가져올 수 있음  
+  - 이 component는 useState를 사용하지만 “use client” 지시문은 없음  
+
+* “use client” 지시문 없이 어떻게 사용할 수 있을까?  
+  - client component 내에서 `<Carousel />`을 사용하면 예상대로 작동  
+```tsx
+'use client'
+
+import { useState } from 'react'
+import { Carousel } from 'acme-carousel'
+
+export default function Gallery() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div>
+      <button onClick={() => setOpen(true)}>View pictures</button>
+      {open && <Carousel />}
+    </div>
+  )
+}
+```  
+
+* 그러나 server component 내에서 직접 사용하려고 하면 오류 발생  
+  - 이는 Next.js가 <Carousel />이 client 전용 기능을 사용하고 있다는 것을 알지 못하기 때문  
+  - 이 문제를 해결하려면 client 전용 기능에 의존하는 외부 component를
+자체 client component로 래핑할 수 있음  
+```tsx
+'use client'
+
+import { Carousel } from 'acme-carousel'
+export default Carousel
+
+```  
+
+* 이제 server component 내에서 `<Carousel />`을 직접 사용할 수 있음  
+```tsx
+import Carousel from './carousel'
+
+export default function Page() {
+  return (
+    <div>
+      <p>View pictures</p>
+      {/* Works, since Carousel is a Client Component */}
+      <Carousel />
+    </div>
+  )
+}
+```  
+
+### 환경 변수 노출 예방  
+* JavaScript 모듈은 server 및 client component 모듈 간에 공유될 수 있음  
+  - 이 말의 의미는 실수로 server 전용 코드를 client로 가져올 수도 있다는 뜻  
+  ```ts
+    export async function getData() {
+    const res = await fetch('https://external-service.com/data', {
+      headers: {
+        authorization: process.env.API_KEY,
+      },
+    })
+
+    return res.json()
+  }
+  ```  
+
+* 해당 client-only(클라이언트 전용) 패키지는 클라이언트 전용 로직이 포함된 모듈을 표시하는 데 사용할 수 있음  
+  - 예: window 객체에 액세스하는 코드  
+
+* Next.js에서 server-only 또는 client-only를 설치하는 것은 선택 사항  
+  - 그러나 lint 규칙에서 불필요한 중속성을 표시하는 경우, 문제를 방지하기 위해 해당 중속성을 설치할 수 있음  
+  `npm install server-only`  
+
+* JavaScript 모듈은 server 및 client component 모듈 간에 공유될 수 있음  
+  - 이 말의 의미는 실수로 server 전용 코드를 client로 가져올 수도 있다는 뜻  
+  ```ts
+    export async function getData() {
+    const res = await fetch('https://external-service.com/data', {
+      headers: {
+        authorization: process.env.API_KEY,
+      },
+    })
+
+    return res.json()
+  }
+  ```  
+
+### Fetching Data (데이터 가져오기)  
+* 서버 컴포넌트  
+  - 서버 컴포넌트에서 데이터를 가져올 수 있는 방법  
+    - fetch API, ORM 또는 데이터베이스  
+
+* [ fetch API 사용 ]  
+  - 데이터를 가져오려면 fetch API를 사용하여 컴포넌트를 비동기식 함수로 변환하고, 다음 fetch 호출을 기다림  
+  ```ts
+    export default async function Page() {
+    const data = await fetch('https://api.vercel.app/blog')
+    const posts = await data.json()
+
+    return (
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    )
+  }
+  ```  
+
+* [ 알아두면 좋은 정보 ]  
+  - fetch 응답은 기본적으로 캐시되지 않음  
+  - Next.js는 라우팅 페이지를 미리 렌더링하고, 성능 향상을 위해 출력은 캐시됨  
+  - 동적 렌더링을 사용하려면 { cache: 'no-store' } 옵션을 사용  
+  - 개발 중에는 가시성과 디버깅을 개선하기 위해 fetch 호출을 기록할 수 있음  
+
+* [ ORM 또는 데이터베이스를 사용 ]  
+  - 서버 컴포넌트는 서버에서 렌더링 되기 때문에 ORM이나 데이터베이스 클라이언트를 사용해서 안전하게 데이터베이스 쿼리를 실행할 수 있음  
+  - 컴포넌트를 비동기 함수로 변환하고 쿼리 호출을 await로 기다리면 됨  
+  ```tsx
+    import { db, posts } from '@/lib/db'
+
+  export default async function Page() {
+    const allPosts = await db.select().from(posts)
+    return (
+      <ul>
+        {allPosts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    )
+  }
+  ```  
+
+* 클라이언트 컴포넌트  
+  - 클라이언트 컴포넌트에서 데이터를 가져오는 방법에는 두 가지가 있음  
+    - React의 use Hook  
+    - SWR 또는 React 쿼리와 같은 통신 라이브러리  
+
+* [ use Hook을 사용한 스트리밍 데이터 ]  
+  - React의 use Hook을 사용해서 서버에서 클라이언트로 데이터를 스트리밍  
+  - 서버 컴포넌트에서 데이터를 먼저 fetch하고, 그 결과(promise)를 클라이언트 컴포넌트에 prop으로 전달  
+  - 서버 컴포넌트는 async가 가능하기 때문에 await fetch()도 사용 가능  
+  - 하지만 클라이언트 컴포넌트에서는 async가 불가능하기 때문에 직접 fetch가 불가능 (렌더링 중 fetch 금지)  
+  - 이런 이유 때문에 서버에서 fetch한 결과를 prop으로 넘기고, 클라이언트에서는 `use(promise)`를 써서 데이터를 가져옴  
+
+  
+
+
 ## 10월 22일 (8주차)  
 ### server 및 클라이언트 컴포넌트 인터리빙  
 * 인터리빙은 일반적으로 여러 데이터 블록이나 비트를 섞어서 전송하거나 처리하여 오류 발생 시 영향을 최소화하는 기술  

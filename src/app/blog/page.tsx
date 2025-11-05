@@ -1,17 +1,16 @@
-import Link from "next/link";
-import { posts } from "./posts";
 
-export default function BlogPage() {
+import { Suspense } from 'react'
+import Posts from './posts'
+
+export default function Page() {
+  // Don't await the data fetching function
+  // const posts = getPosts()
+  const posts = fetch('https://jsonplaceholder.typicode.com/posts')
+    .then((res) => res.json())
+
   return (
-    <div>
-      <h1>블로그1 목록</h1>
-      <ul>
-        {posts.map((post) => (
-          <li key={post.slug}>
-            <Link href={`/blog1/${post.slug}`}>{post.title}</Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+    <Suspense fallback={<div>Loading...</div>}>
+      <Posts posts={posts} />
+    </Suspense>
+  )
 }
