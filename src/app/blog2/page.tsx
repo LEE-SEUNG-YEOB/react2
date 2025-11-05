@@ -1,17 +1,28 @@
-import Link from "next/link";
-import { posts } from "./posts";
+'use client'
 
-export default function BlogPage2() {
+import useSWR from 'swr'
+
+const fetcher = <T,>(url: string): Promise<T> => fetch(url).then((r) => r.json())
+
+type Photo = {
+  id: string
+  title: string
+}
+
+export default function Blog2Page() {
+  const { data, error, isLoading } = useSWR<Photo[]>(
+    'https://jsonplaceholder.typicode.com/photos',
+    fetcher
+  )
+
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+
   return (
-    <div>
-      <h1>블로그2 목록</h1>
-      <ul>
-        {posts.map((post) => (
-          <li key={post.slug}>
-            <Link href={`/blog2/${post.slug}`}>{post.title}</Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+    <ul>
+      {data?.map((post: { id: string; title: string }) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
 }

@@ -1,5 +1,131 @@
 # 202030121 이승엽
 
+## 11월 5일 (10주차)
+### Fetching Data (데이터 가져오기)  
+* 서버 컴포넌트  
+  - 서버 컴포넌트에서 데이터를 fetch하는 방법은 두 가지가 있음  
+    - fetch API  
+    - ORM 또는 데이터베이스  
+
+* 데이터를 가져오려면 fetch API를 사용하여 컴포넌트를 비동기식 함수로 변환하고 다음 fetch()의 호출을 기다림  
+```typescript
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```  
+
+* [ 알아두면 좋은 정보 ]  
+  - fetch 응답은 기본적으로 캐싱되지 않음  
+  - Next.js는 라우팅 페이지를 미리 렌더링하고, 성능 향상을 위해 출력은 캐싱됨  
+  - 동적 렌더링을 사용하려면 { cache: 'no-store' } 옵션을 사용  
+  - 개발 중에는 가시성과 디버깅을 개선하기 위해 fetch 호출을 기록할 수 있음  
+
+* ORM 또는 데이터베이스를 사용  
+  - 서버 컴포넌트는 서버에서 렌더링 되기 때문에 ORM이나 데이터베이스 클라이언트를 사용해서 안전하게 데이터베이스 쿼리를 실행할 수 있음  
+  - 컴포넌트를 비동기 함수로 변환하고 호출을 기다리면 됨  
+  ```typescript
+  import { db, posts } from '@/lib/db'
+
+  export default async function Page() {
+    const allPosts = await db.select().from(posts)
+    return (
+      <ul>
+        {allPosts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    )
+  }
+  ```  
+
+### 클라이언트 컴포넌트  
+* 클라이언트 컴포넌트에서 데이터를 fetch하는 방법은 두 가지가 있음  
+  - React의 use Hook  
+  - SWR 또는 React 쿼리와 같은 통신 라이브러리  
+
+* use Hook을 사용한 스트리밍 데이터  
+  - React의 use Hook을 사용하여 서버에서 클라이언트로 데이터를 스트리밍함  
+  - 서버 컴포넌트에서 데이터를 먼저 fetch하고, 그 결과(promise)를 클라이언트 컴포넌트의 prop으로 전달  
+  - 서버 컴포넌트는 async가 가능하기 때문에 await fetch()도 사용 가능  
+  - 컴포넌트에서는 async가 불가능하기 때문에 직접 fetch가 불가능  
+  - 이 문제 때문에 서버에서 fetch한 결과를 prop으로 넘기고, 클라이언트에서는 use(promise)를 써서 데이터를 가져옴  
+
+### Fetch의 이해  
+* fetch(url)  
+  - fetch() 함수는 브라우저의 Fetch API로, HTTP 요청을 보낼 때 사용  
+  - 첫 번째 인자로 요청(request) 할 URL, 두 번째 인자로 요청 옵션을 전달  
+  - 옵션은 method, headers, body 등  
+  - Promise `<Response>` 객체를 반환  
+  - 답이 도착하면 then()을 통해 결과를 처리  
+  - 성공적으로 응답이 도착하면 resolve() 함수가 호출  
+  - Promise는 네트워크 요청이 완료되면 resolve(성공)  
+  - HTTP 상태 코드가 4xx/5xx 이어도 Promise는 reject(오류)되지 않음  
+  - 네트워크 에러(통신 오류)가 아니라면 무조건 resolve  
+  - 따라서 404, 500 등의 오류를 처리하려면 예외처리가 별도로 필요  
+  ```javascript
+    function getPosts() {
+    return fetch('https://jsonplaceholder.typicode.com/posts').then((res) =>
+      res.json()
+    )
+  }
+   ```  
+
+### Fetch의 이해  
+* Promise의 기본 구조  
+  - new Promise()를 호출하면 Promise 객체가 생성  
+  - 생성자의 인자로 callback 함수가 들어가는데, 이 callback은 두 개의 매개변수를 받음  
+    - resolve: 작업이 성공했을 때 호출하는 함수  
+    - reject: 작업이 실패했을 때 호출하는 함수
+  ```javascript
+  const promise = new Promise((resolve, reject) => {
+    // 비동기 작업 수행
+    if (성공) {
+      resolve('성공 결과')
+    } else {
+      reject('에러 메세지')
+    }
+  })
+  ```  
+
+* resolve()의 기능  
+  - resolve(value)는 Promise의 상태를 "fulfilled(이행됨)"으로 바꾸고, 그 값(value)을 .then()으로 전달  
+  ```javascript
+    const promise = new Promise((resolve) => {
+    resolve('완료')
+  })
+
+  promise.then((result) => {
+    console.log(result) // 출력: "완료"
+  })
+  ```  
+
+### Suspense Component란  
+* 비동기 작업 중에 UI의 일부를 일시적으로 대체 UI(fallback) 로 보여주어 사용자 경험을 향상시키는 React 기능  
+
+* [ Suspense의 핵심 기능 ]  
+  - 비동기 작업이 완료될 때까지 해당 컴포넌트 트리 렌더링을 일시 중지  
+  - 작업이 완료되면 실제 UI로 자동 전환  
+  - 비동기 로딩 중 보여 줄 fallback UI(로딩 인디케이터 등) 를 지정할 수 있음  
+  - Suspense 내부에 여러 개의 컴포넌트가 있을 경우, 내부 컴포넌트 중 하나라도 로딩 중이면 fallback UI가 표시  
+  - 모든 작업이 완료되면 한 번에 실제 UI가 노출  
+  - 이 기능을 활용하면 여러 비동기 컴포넌트를 독립적으로 대기하거나, 병렬 로딩 상태를 효과적으로 관리할 수 있음  
+
+### 중복된 요청 제거 및 데이터 캐시  
+* 중복된 fetch 요청을 제거하는 한 가지 방법은 요청 메모이제이션(request memoization) 을 사용하는 것  
+  - 같은 데이터를 여러 번 요청하지 않게 하려면, ‘요청 메모이제이션(request memoization)’ 을 사용할 수 있다는 의미  
+  - 이 메커니즘(요청 메모이제이션)을 사용하면, 하나의 렌더링 과정(single render pass) 안에서 같은 URL과 옵션을 가진 GET 또는 HEAD 방식의 fetch 호출들을 하나의 요청으로 결합함  
+  - 렌더링 중에 같은 주소와 설정으로 여러 번 fetch()를 호출하더라도, Next.js는 그것들을 하나의 네트워크 요청으로 통합해서 처리한다는 의미  
+  - 이 작업은 자동으로 수행되며, fetch에 Abort 신호를 전달하여 작업을 취소(opt out) 할 수 있음  
+  - 요청 메모이제이션은 요청의 수명에 따라 범위가 지정
+
 ## 10월 29일 (9주차)
 ### Context provicer의 실행 과정  
 * Context 생성  
