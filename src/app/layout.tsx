@@ -23,7 +23,8 @@ export default function RootLayout({
         <Link href={"/2"}>2</Link> |{" "}
         <Link href={"/3"}>3</Link> |{" "}
         <Link href={"/4"}>4</Link> |{" "}
-        <Link href={"/carousel"}>Carousel</Link>
+        <Link href={"/carousel"}>Carousel</Link> |{" "}
+        <Link href={"/artist"}>Artist</Link>
         <hr />
         <ThemeStatus />
         <main>{children}</main>

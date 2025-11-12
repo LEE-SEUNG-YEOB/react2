@@ -1,5 +1,94 @@
 # 202030121 이승엽
 
+## 11월 12일 (11주차)
+### 스트리밍  
+* Next.js의 별칭은 latest와 canary 두 가지가 있음  
+
+* latest는 현재 가장 최신 안정 버전, canary는 안정화 직전의 최신 개발 버전을 의미  
+  - 서버 컴포넌트에서 async/await을 사용하는 경우 Next.js는 동적 렌더링을 선택  
+  - 모든 사용자 요청에 대해 서버에서 데이터를 가져와서 렌더링  
+  - 데이터 요청 속도가 느린 경우, 모든 데이터를 가져올 때까지 전체 경로의 렌더링이 차단  
+  - 초기 로드 시간과 사용자 경험을 개선하려면 스트리밍을 사용하여 페이지의 HTML을 더 작은 단위의 블록으로 나누고, 점진적으로 서버에서 클라이언트로 해당 블록을 전송할 수 있음  
+
+* 애플리케이션에서 스트리밍을 구현하는 방법은 두 가지가 있음  
+  - loading.tsx 파일로 페이지 감싸기  
+  - `<Suspense>` 로 컴포넌트를 감싸기  
+
+* 사용자는 page가 렌더링 되는 동안 레이아웃과 로딩 상태를 즉시 확인할 수 있음  
+  - 렌더링이 완료되면 새 콘텐츠가 자동으로 교체  
+
+* loading.tsx는 layout.tsx 내부에 중첩되며, page.tsx 파일과 그 아래의 모든 자식 파일들을 `<Suspense>`로 자동 래핑  
+  - 이 방법은 경로 세그먼트(layout 및 page)에는 효과적이지만, 더 세분화된 스트리밍을 위해서는 `<Suspense>`를 사용할 수 있음  
+  ![](./img/36.png)  
+
+### `<Suspense>`를 사용하는 방법  
+* `<Suspense>`는 page의 어떤 부분을 스트리밍할지 더욱 세부적으로 설정할 수 있음  
+  - 예를 들어, `<Suspense>` 경계를 벗어나는 모든 페이지 콘텐츠를 즉시 표시하고, 경계 안에 있는 블로그 게시물 목록을 스트리밍할 수 있음  
+  ```tsx
+  import { Suspense } from 'react'
+  import BlogList from '@/components/BlogList'
+  import BlogListSkeleton from '@/components/BlogListSkeleton'
+
+  export default function BlogPage() {
+    return (
+      <div>
+        {/* This content will be sent to the client immediately */}
+        <header>
+          <h1>Welcome to the Blog</h1>
+          <p>Read the latest posts below.</p>
+        </header>
+
+        <main>
+          {/* Any content wrapped in a <Suspense> boundary will be streamed */}
+          <Suspense fallback={<BlogListSkeleton />}>
+            <BlogList />
+          </Suspense>
+        </main>
+      </div>
+    )
+  }
+  ```  
+
+### 의미 있는 로딩 상태 생성  
+* 즉시 로딩 상태는 탐색(접속) 후 사용자에게 즉시 표시되는 대체 UI  
+  - 즉시 로딩 상태(instant loading state)란 loading.jsx 파일을 추가하여 폴더 내에 로딩 상태를 생성하는 것을 의미  
+
+* 최상의 사용자 경험을 위해 앱의 응답을 사용자가 쉽게 이해할 수 있도록 의미 있는 로딩 상태를 디자인  
+  - 예를 들어, 스켈레톤과 스피너를 사용하거나, 커버 사진·제목 등 향후 화면에 표시되는 작지만 의미 있는 요소를 사용할 수 있음  
+
+### 순차적 데이터 fetch  
+* 트리 구조 내 중첩된 컴포넌트 각각이 자체 데이터를 가져올 때 중복 요청이 제거되지 않으면 순차적 데이터 가져오기가 발생하며, 이로 인해 응답 시간이 길어짐  
+  - 한 번의 fetch가 다른 하나의 fetch 결과에 따라 달라지는 경우 이 패턴이 필요할 수 있음  
+  - 예를 들어, `<Playlists>` 컴포넌트는 `<Artist>` 컴포넌트가 데이터 fetch를 완료한 후에 데이터를 fetch를 시작  
+  - 그 이유는 `<Playlists>`가 artistID prop에 따라 달라지기 때문  
+  ![](./img/37.png)  
+
+### 병렬 데이터 fetch  
+* 경로 내의 데이터 요청이 동시에 발생할 때 병렬 데이터 가져오기가 발생  
+
+* 기본적으로 레이아웃과 페이지는 병렬로 렌더링  
+  - 따라서 각 세그먼트는 가능한 한 빨리 데이터를 fetch 시작  
+  - 그러나 컴포넌트 내부에서 여러개의 async/await 요청이 다른 요청 뒤에 배치되는 경우, 순차적으로 처리될 수 있음  
+  - 예를 들어, getAlbums는 getArtist가 확인될 때까지 차단  
+```tsx
+import getArtist from '@/lib/getArtist'
+import getAlbums from '@/lib/data'
+
+export default async function Page({ params }) {
+  // These requests will be sequential
+  const { username } = await params
+  const artist = await getArtist(username)
+  const albums = await getAlbums(username)
+
+  return <div>{artist.name}</div>
+}
+
+```  
+
+
+
+
+
 ## 11월 5일 (10주차)
 ### Fetching Data (데이터 가져오기)  
 * 서버 컴포넌트  

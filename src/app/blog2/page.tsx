@@ -1,6 +1,6 @@
 'use client'
-
 import useSWR from 'swr'
+import { Suspense } from 'react'
 
 const fetcher = <T,>(url: string): Promise<T> => fetch(url).then((r) => r.json())
 
@@ -19,10 +19,15 @@ export default function Blog2Page() {
   if (error) return <div>Error: {error.message}</div>
 
   return (
-    <ul>
-      {data?.map((post: { id: string; title: string }) => (
-        <li key={post.id}>{post.title}</li>
-      ))}
-    </ul>
+    <>
+      <h1>Blog2 Page – Photo Titles</h1>
+      <ul>
+        <Suspense fallback="Loading posts...">
+          {data?.map((post: { id: string; title: string }) => (
+            <li key={post.id}>{post.title}</li>
+          ))}
+        </Suspense>
+      </ul>
+    </>
   )
 }
