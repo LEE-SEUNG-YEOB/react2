@@ -1,0 +1,9 @@
+/* base-button.module.css */
+.primary {
+  background-color: #faf4c4;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+}

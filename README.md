@@ -1,5 +1,66 @@
 # 202030121 이승엽
 
+## 11월 19일 (12주차)  
+### Tailwind CSS  
+* Tailwind CSS는 사용자 정의 디자인을 구축하기 위한 저수준 유틸리티 클래스를 제공하는 유틸리티 우선 CSS 프레임워크  
+
+### CSS Modules  
+* CSS 모듈은 고유한 클래스 이름을 생성하여 CSS의 범위를 로컬로 지정  
+  - 이를 통해 이름 충돌에 대한 걱정 없이 다른 파일에서 동일한 클래스를 사용할 수 있음  
+
+### Global CSS  
+* 전역 app 스타일은 디렉토리 내의 모든 레이아웃, 페이지 또는 컴포넌트로 가져올 수 있음  
+  - 그러나 Next.js는 스타일시트에 대한 React의 기존 규칙을 사용하여 Suspense와 동작하기 때문에 현재 충돌로 이어질 수 있는 경우 사이트를 탐색할 때 스타일시트가 재설치 안됨  
+
+* 전형적 글로벌 CSS는 전역 스타일 사용, 컴포넌트 스타일링에는 Tailwind CSS, 필요한 경우 사용자 정의 CSS에는 css 모듈을 사용하는 것이 좋음  
+
+* 정리  
+  - 전역적으로 한 번만 적용되어야 하는 스타일은 global.css에 선언해서 사용  
+  -  대부분의 컴포넌트 스타일은 Tailwind로 처리  
+  -  Tailwind로 처리하기 어려운 특정 컴포넌트에 한해서 CSS Modules로 커스텀 스타일을 만들어 사용  
+
+### 외부 스타일시트  
+* 외부 패키지로 제공되는 스타일시트는 app 디렉토리의 컴포넌트를 포함하여 어느 곳에서나 import해서 사용할 수 있음  
+  - src 디렉토리를 사용하는 경우라면 src 디렉토리의 어느 곳에서나 사용할 수 있다는 의미  
+
+```tsx
+// app/layout.tsx
+import 'bootstrap/dist/css/bootstrap.css'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className="container">{children}</body>
+    </html>
+  )
+}
+```   
+
+### 순서 지정 및 병합  
+* Next.js는 프로덕션 빌드 중에 스타일시트를 자동으로 청크(병합)하여 CSS를 최적화  
+  - CSS의 순서는 코드에서 스타일을 가져오는 순서에 따라 달라짐  
+  - 예를 들어, <BaseButton>이 page.module.css보다 먼저 import되기 때문에 base-button.module.css가 page.module.css보다 먼저 요청  
+  ```tsx
+  // page.tsx
+  import { BaseButton } from './base-button'
+  import styles from './page.module.css'
+
+  export default function Page() {
+    return <BaseButton className={styles.primary} />
+  }
+
+  // base-button.tsx
+  import styles from './base-button.module.css'
+
+  export function BaseButton() {
+    return <button className={styles.primary} />
+  }
+  ```
+
 ## 11월 12일 (11주차)
 ### 스트리밍  
 * Next.js의 별칭은 latest와 canary 두 가지가 있음  
